@@ -67,17 +67,39 @@ No real login, no optimistic concurrency, and the dashboard can miss a change if
 
 ## Time spent
 
-Total: ~7 hours (over the 5-hour cap).
+Total: ~9 hours, including ~3 hours of first-time setup (over the
+5-hour cap).
 
 | Phase | Time | Notes |
 |---|---|---|
-| Reading the brief and planning | ~45 min | The night before, no code |
-| Environment setup | ~3h | First time installing and using .NET, Docker, Kafka and Angular; Docker Desktop slow to start on my laptop; package version errors |
-| Building | ~4h | Design, data model, endpoints, status rules, Kafka + dashboard, testing, README |
+| Environment setup | ~3h | First time installing and using .NET, Docker, Kafka and Angular; package version errors; Docker and Kafka slow on my laptop (see below) |
+| Backend | ~4h | Design, data model, endpoints, status rules, Kafka + dashboard, testing, README |
+| Frontend and final docs | ~2h | Minimal Angular UI (submit form, read-only officer page), built after the backend was complete; dev server slow and lagging with Docker running, needed several laptop restarts; updating DESIGN.md and the journal |
 
-I had not used .NET, Docker, Kafka or Angular before, so much of the
-extra time went on setup rather than building. With the tools already
-installed, the build itself fit within the cap.
+I had not used .NET, Docker, Kafka or Angular before, so a large part
+of the extra time went on setup rather than building.
 
-I prioritised a working, tested backend over the frontend, as the brief
-suggests.
+My laptop also has limited memory: Docker's VM had about 1.6 GB, so
+Docker Desktop and Kafka were slow to start (one Kafka restart took
+~3.5 minutes) until I reduced Kafka's memory settings. Running the
+Angular dev server alongside Docker and the backend caused repeated
+lag and errors, and I had to restart my laptop several times.
+
+The backend itself took about 4 hours.
+
+I prioritised a working, tested backend first, as the brief suggests,
+and added a minimal frontend afterwards. I chose not to extend the
+frontend further (claim detail page, "my claims") to limit the overrun.
+The backend already supports both.
+
+## How to run the frontend
+cd frontend
+npm install
+ng serve
+Then open http://localhost:4200 (the backend must be running).
+
+## Next steps (not built)
+- Claim detail page: history (audit trail) and buttons for allowed
+  status changes. The backend supports this already.
+- "My claims" view for claimants (backend: GET /api/claims?claimant=).
+- Outbox pattern for Kafka, concurrency control (see DESIGN.md).

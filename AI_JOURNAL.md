@@ -74,3 +74,13 @@
 - Accepted.
 
 17. Asked Claude Code for the README. I filled in the time-spent section.
+
+**Frontend**
+18. Asked Claude Code to check the frontend against DESIGN.md. It found gaps: claimants can't track claims, officers can't assess from the UI, claim history isn't shown, and InfoRequest isn't built in either tier.
+- Decided not to build more frontend, for time. The backend already
+  supports all of these (assign/status, history, filter by claimant),
+  so they can be tested through ClaimsApi.http.
+- Moved InfoRequest to "Not building" in DESIGN.md. The InfoRequested
+  status plus a note covers the basic case.
+
+19. Running Angular, the backend and Docker together was too heavy for my laptop: the dev server lagged and errored repeatedly. Fixed by restarting the laptop a few times. Not an AI issue, but it cost time.
