@@ -1,6 +1,35 @@
 @ClaimsApi_HostAddress = http://localhost:5086
 
-GET {{ClaimsApi_HostAddress}}/weatherforecast/
-Accept: application/json
+### Create a claim
+POST {{ClaimsApi_HostAddress}}/api/claims
+Content-Type: application/json
 
-###
+{
+  "type": "Motor",
+  "market": "UAE",
+  "description": "Rear-ended at a traffic light, bumper and boot damaged.",
+  "estimatedAmount": 4250.50,
+  "incidentDate": "2026-11-15",
+  "claimant": "Jane Doe"
+}
+
+### List all claims
+GET {{ClaimsApi_HostAddress}}/api/claims
+
+### List claims filtered by status and claimant
+GET {{ClaimsApi_HostAddress}}/api/claims?status=Submitted&claimant=Jane Doe
+
+### Get one claim (paste an id from the create response)
+GET {{ClaimsApi_HostAddress}}/api/claims/00000000-0000-0000-0000-000000000000
+
+### Invalid: future date, missing description, 3 decimals
+POST {{ClaimsApi_HostAddress}}/api/claims
+Content-Type: application/json
+
+{
+  "type": "Property",
+  "market": "UAE",
+  "estimatedAmount": 10.555,
+  "incidentDate": "2099-01-01",
+  "claimant": "Jane Doe"
+}
