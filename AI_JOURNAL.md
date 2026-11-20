@@ -30,3 +30,16 @@
 
 2. Reviewed the Claims table: it had CreatedAt but no incident date.
 - Added IncidentDate — insurers need when the incident happened (to check coverage), not just when it was reported. 
+
+3. Claude Code built the create/list/get claim endpoints. It returns DTOs instead of database classes. 
+- Accepted: the API shape won't change by accident when the database changes. I tested the endpoints myself with REST Client and the browser.
+
+4. I reviewed and kept the list of allowed status transitions
+  based on my DESIGN.md flow (e.g. Rejected and Settled are final, a claim can't skip from Submitted to Approved). Claude Code implemented it as one lookup table, so the rules are in one place.
+- Accepted that /status refuses "Assigned": a claim should only become Assigned through /assign, which requires an officer name.
+
+5. Claude Code added an optional Note to status changes. 
+- Accepted: needed so an officer can say what info is requested or why a claim is rejected.
+
+6. Claude Code suggested adding concurrency protection (two officers editing at once). 
+- Decided to defer it for time and documented it in DESIGN.md. Kafka is more important for this brief.

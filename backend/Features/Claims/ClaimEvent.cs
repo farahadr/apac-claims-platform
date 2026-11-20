@@ -13,4 +13,7 @@ public class ClaimEvent
 
     public string ChangedBy { get; set; } = "";
     public DateTime ChangedAt { get; set; }
+
+    // Optional free text, e.g. the reason for a rejection.
+    public string? Note { get; set; }
 }

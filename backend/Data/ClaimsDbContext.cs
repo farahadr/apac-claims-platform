@@ -44,6 +44,7 @@ public class ClaimsDbContext(DbContextOptions<ClaimsDbContext> options) : DbCont
         modelBuilder.Entity<ClaimEvent>(ev =>
         {
             ev.Property(e => e.ChangedBy).HasMaxLength(100);
+            ev.Property(e => e.Note).HasMaxLength(1000);
         });
     }
 }

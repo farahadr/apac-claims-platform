@@ -101,6 +101,10 @@ namespace ClaimsApi.Data.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
+                    b.Property<string>("Note")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
                     b.Property<string>("ToStatus")
                         .IsRequired()
                         .HasMaxLength(32)

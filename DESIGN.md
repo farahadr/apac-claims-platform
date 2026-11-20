@@ -35,3 +35,4 @@ to build and easier to run; it could be split later if needed.
 - Real login: a simple role switch instead
 - File uploads, payments, emails
 - Multiple markets' different rules
+- Concurrency control: two officers updating the same claim at the same moment could both pass the status check. Fix would be optimistic concurrency (PostgreSQL row version). Deferred for time.

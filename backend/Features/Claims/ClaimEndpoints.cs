@@ -13,7 +13,93 @@ public static class ClaimEndpoints
         group.MapPost("/", CreateClaim);
         group.MapGet("/", ListClaims);
         group.MapGet("/{id:guid}", GetClaim).WithName("GetClaim");
+        group.MapPost("/{id:guid}/assign", AssignClaim);
+        group.MapPost("/{id:guid}/status", ChangeStatus);
     }
+
+    // POST /api/claims/{id}/assign  — Submitted → Assigned, and sets the officer.
+    private static async Task<IResult> AssignClaim(Guid id, AssignClaimRequest request, ClaimsDbContext db)
+    {
+        var errors = new Dictionary<string, string[]>();
+        CheckText(errors, request.Officer, "officer", 100);
+        if (errors.Count > 0)
+            return Results.ValidationProblem(errors);
+
+        var claim = await LoadWithEvents(db, id);
+        if (claim is null)
+            return Results.NotFound();
+
+        if (!ClaimTransitions.IsAllowed(claim.Status, ClaimStatus.Assigned))
+            return TransitionError(claim.Status, ClaimStatus.Assigned);
+
+        var officer = request.Officer!.Trim();
+        claim.AssignedOfficer = officer;
+        // No login yet, so we record the officer as the person who made the change.
+        RecordStatusChange(db, claim, ClaimStatus.Assigned, officer, note: null);
+
+        await db.SaveChangesAsync();
+        return Results.Ok(ToDetails(claim));
+    }
+
+    // POST /api/claims/{id}/status  — every other move in the status flow.
+    private static async Task<IResult> ChangeStatus(Guid id, ChangeStatusRequest request, ClaimsDbContext db)
+    {
+        var errors = new Dictionary<string, string[]>();
+        if (request.Status is null || !Enum.IsDefined(request.Status.Value))
+            errors["status"] = ["Status is required."];
+        else if (request.Status == ClaimStatus.Assigned)
+            errors["status"] = ["Use POST /api/claims/{id}/assign to assign a claim, so the officer is recorded."];
+        CheckText(errors, request.ChangedBy, "changedBy", 100);
+        if (request.Note?.Trim().Length > 1000)
+            errors["note"] = ["note must be at most 1000 characters."];
+        if (errors.Count > 0)
+            return Results.ValidationProblem(errors);
+
+        var claim = await LoadWithEvents(db, id);
+        if (claim is null)
+            return Results.NotFound();
+
+        var to = request.Status!.Value;
+        if (!ClaimTransitions.IsAllowed(claim.Status, to))
+            return TransitionError(claim.Status, to);
+
+        var note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim();
+        RecordStatusChange(db, claim, to, request.ChangedBy!.Trim(), note);
+
+        await db.SaveChangesAsync();
+        return Results.Ok(ToDetails(claim));
+    }
+
+    private static Task<Claim?> LoadWithEvents(ClaimsDbContext db, Guid id) =>
+        db.Claims.Include(c => c.Events).FirstOrDefaultAsync(c => c.Id == id);
+
+    // Changes the status and writes the matching history row.
+    private static void RecordStatusChange(ClaimsDbContext db, Claim claim, ClaimStatus to, string changedBy, string? note)
+    {
+        var now = DateTime.UtcNow;
+        var ev = new ClaimEvent
+        {
+            Id = Guid.NewGuid(),
+            ClaimId = claim.Id,
+            FromStatus = claim.Status,
+            ToStatus = to,
+            ChangedBy = changedBy,
+            ChangedAt = now,
+            Note = note,
+        };
+        // Add the event explicitly so EF Core knows it's a new row to INSERT.
+        db.ClaimEvents.Add(ev);
+        claim.Events.Add(ev);
+
+        claim.Status = to;
+        claim.UpdatedAt = now;
+    }
+
+    private static IResult TransitionError(ClaimStatus from, ClaimStatus to) =>
+        Results.Problem(
+            statusCode: StatusCodes.Status400BadRequest,
+            title: "Status change not allowed.",
+            detail: ClaimTransitions.Explain(from, to));
 
     // POST /api/claims
     private static async Task<IResult> CreateClaim(CreateClaimRequest request, ClaimsDbContext db)
@@ -90,7 +176,7 @@ public static class ClaimEndpoints
         c.Claimant, c.AssignedOfficer, c.IncidentDate, c.CreatedAt, c.UpdatedAt,
         c.Events
             .OrderBy(e => e.ChangedAt)
-            .Select(e => new ClaimEventResponse(e.FromStatus, e.ToStatus, e.ChangedBy, e.ChangedAt))
+            .Select(e => new ClaimEventResponse(e.FromStatus, e.ToStatus, e.ChangedBy, e.ChangedAt, e.Note))
             .ToList());
 
     // Returns field name -> error messages. Empty means the request is valid.
@@ -103,9 +189,9 @@ public static class ClaimEndpoints
         if (r.Type is null || !Enum.IsDefined(r.Type.Value))
             Add("type", "Type is required (Motor or Property).");
 
-        CheckText(r.Market, "market", 50);
-        CheckText(r.Description, "description", 2000);
-        CheckText(r.Claimant, "claimant", 100);
+        CheckText(errors, r.Market, "market", 50);
+        CheckText(errors, r.Description, "description", 2000);
+        CheckText(errors, r.Claimant, "claimant", 100);
 
         if (r.EstimatedAmount is not { } amount)
             Add("estimatedAmount", "Estimated amount is required.");
@@ -124,13 +210,14 @@ public static class ClaimEndpoints
             Add("incidentDate", "Incident date cannot be in the future.");
 
         return errors;
+    }
 
-        void CheckText(string? value, string field, int maxLength)
-        {
-            if (string.IsNullOrWhiteSpace(value))
-                Add(field, $"{field} is required.");
-            else if (value.Trim().Length > maxLength)
-                Add(field, $"{field} must be at most {maxLength} characters.");
-        }
+    // Shared check for required text fields (used by every request).
+    private static void CheckText(Dictionary<string, string[]> errors, string? value, string field, int maxLength)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            errors[field] = [$"{field} is required."];
+        else if (value.Trim().Length > maxLength)
+            errors[field] = [$"{field} must be at most {maxLength} characters."];
     }
 }

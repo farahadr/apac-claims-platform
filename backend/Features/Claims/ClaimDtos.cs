@@ -10,6 +10,12 @@ public record CreateClaimRequest(
     DateOnly? IncidentDate,
     string? Claimant);
 
+// POST /api/claims/{id}/assign
+public record AssignClaimRequest(string? Officer);
+
+// POST /api/claims/{id}/status
+public record ChangeStatusRequest(ClaimStatus? Status, string? ChangedBy, string? Note);
+
 // One row in the claims list (no description or history, to keep it light).
 public record ClaimSummary(
     Guid Id,
@@ -41,4 +47,5 @@ public record ClaimEventResponse(
     ClaimStatus? FromStatus,
     ClaimStatus ToStatus,
     string ChangedBy,
-    DateTime ChangedAt);
+    DateTime ChangedAt,
+    string? Note);
