@@ -62,4 +62,15 @@
 12. Sample data used market "UAE", but the brief is about Chubb APAC.
 - Changed it to Malaysia.
 
-13. - Kafka container was unstable on my machine. Asked Claude Code to fix the docker-compose settings so reviewers get a stable setup.
+13. Kafka container was unstable on my machine. Asked Claude Code to fix the docker-compose settings so reviewers get a stable setup.
+
+14. Kafka container was unstable on my machine. Claude Code found the cause: 
+- Kafka's default 1 GB memory on a Docker VM with only 1.6 GB.
+- Accepted its fix: smaller heap (256 MB), data saved in a volume so it survives restarts, explicit single-node settings. Kafka now restarts cleanly. Startup can still be slow on a low-memory laptop.
+
+15. Claude Code's clean-up command stopped my running API too (it killed every ClaimsApi process by name, not just its own). No data lost. It changed to stopping only processes it started.
+
+16. Claude Code made the app apply database migrations at startup, so reviewers only need docker compose up and dotnet run. 
+- Accepted.
+
+17. Asked Claude Code for the README. I filled in the time-spent section.
