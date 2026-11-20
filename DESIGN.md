@@ -17,6 +17,11 @@ Submitted → Assigned → UnderReview → Approved → Settled
                        Rejected
 (Rules: can't approve a rejected claim, can't settle before approval)
 
+## Key rules
+- Claim history (ClaimEvent) is an audit trail: it is never deleted.
+  The database blocks deleting a claim that has history (Restrict, not
+  cascade). Claims are closed (Rejected/Settled), not deleted.
+
 ## Backend: one service
 One .NET API, organised by feature. A single service is faster
 to build and easier to run; it could be split later if needed.
