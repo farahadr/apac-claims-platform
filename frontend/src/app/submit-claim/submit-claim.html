@@ -1,0 +1,68 @@
+<h1>Submit a claim</h1>
+
+@if (created(); as claim) {
+  <!-- Success: show the new claim instead of the form -->
+  <section class="card">
+    <h2>Claim submitted</h2>
+    <p>Thank you. Keep this reference for your records.</p>
+    <dl class="details">
+      <dt>Claim id</dt>
+      <dd><code>{{ claim.id }}</code></dd>
+      <dt>Status</dt>
+      <dd><span class="badge" [attr.data-status]="claim.status">{{ claim.status }}</span></dd>
+    </dl>
+    <button type="button" (click)="submitAnother()">Submit another claim</button>
+  </section>
+} @else {
+  <form class="card form" [formGroup]="form" (ngSubmit)="submit()">
+    <label>
+      Type
+      <select formControlName="type">
+        <option value="Motor">Motor</option>
+        <option value="Property">Property</option>
+      </select>
+    </label>
+
+    <label>
+      Market
+      <input formControlName="market" placeholder="e.g. Malaysia" />
+    </label>
+
+    <label class="full">
+      Description
+      <textarea formControlName="description" rows="4" placeholder="What happened?"></textarea>
+    </label>
+
+    <label>
+      Estimated amount
+      <input type="number" formControlName="estimatedAmount" min="0" step="0.01" />
+    </label>
+
+    <label>
+      Incident date
+      <input type="date" formControlName="incidentDate" [max]="today" />
+    </label>
+
+    <label class="full">
+      Your name
+      <input formControlName="claimant" />
+    </label>
+
+    <div class="full">
+      <button type="submit" [disabled]="saving()">
+        {{ saving() ? 'Submitting…' : 'Submit claim' }}
+      </button>
+    </div>
+
+    @if (errors().length > 0) {
+      <div class="full alert" role="alert">
+        <strong>Please fix the following:</strong>
+        <ul>
+          @for (message of errors(); track message) {
+            <li>{{ message }}</li>
+          }
+        </ul>
+      </div>
+    }
+  </form>
+}

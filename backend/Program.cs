@@ -19,6 +19,13 @@ builder.Services.Configure<KafkaOptions>(builder.Configuration.GetSection("Kafka
 builder.Services.AddSingleton<ClaimEventPublisher>();
 builder.Services.AddHostedService<ClaimEventsConsumer>();
 
+// Let the Angular dev server (a different origin) call this API from the browser.
+builder.Services.AddCors(options =>
+    options.AddDefaultPolicy(policy => policy
+        .WithOrigins("http://localhost:4200")
+        .AllowAnyHeader()
+        .AllowAnyMethod()));
+
 // Send and accept enums as text ("Motor") in JSON, not numbers.
 builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter(allowIntegerValues: false)));
@@ -39,6 +46,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors();
 
 app.MapClaimEndpoints();
 app.MapDashboardEndpoints();

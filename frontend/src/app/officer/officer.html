@@ -1,0 +1,76 @@
+<div class="page-header">
+  <h1>Claims officer</h1>
+  <button type="button" class="secondary" (click)="refresh()">Refresh</button>
+</div>
+
+<!-- Summary cards (from Kafka, so they can lag a second behind the table) -->
+@if (summary.error()) {
+  <p class="alert" role="alert">Could not load the dashboard summary. Is the API running?</p>
+} @else if (summary.hasValue()) {
+  <div class="stats">
+    <section class="card stat">
+      <span class="stat-label">Open claims</span>
+      <span class="stat-value">{{ summary.value().openClaims }}</span>
+    </section>
+    <section class="card stat">
+      <span class="stat-label">Total exposure</span>
+      <span class="stat-value">{{ summary.value().totalExposure | number: '1.2-2' }}</span>
+    </section>
+    <section class="card stat">
+      <span class="stat-label">Open claims per officer</span>
+      @for (row of summary.value().openClaimsPerOfficer; track row.officer) {
+        <div class="officer-row">
+          <span>{{ row.officer }}</span>
+          <strong>{{ row.openClaims }}</strong>
+        </div>
+      } @empty {
+        <span class="muted">No open claims</span>
+      }
+    </section>
+  </div>
+} @else {
+  <p class="muted">Loading summary…</p>
+}
+
+<!-- Claims table (newest first; the API already sorts it) -->
+<section class="card">
+  <h2>All claims</h2>
+  @if (claims.error()) {
+    <p class="alert" role="alert">Could not load claims. Is the API running?</p>
+  } @else if (claims.hasValue()) {
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Claimant</th>
+            <th>Type</th>
+            <th>Market</th>
+            <th class="num">Amount</th>
+            <th>Status</th>
+            <th>Officer</th>
+            <th>Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (claim of claims.value(); track claim.id) {
+            <tr>
+              <td>{{ claim.claimant }}</td>
+              <td>{{ claim.type }}</td>
+              <td>{{ claim.market }}</td>
+              <td class="num">{{ claim.estimatedAmount | number: '1.2-2' }}</td>
+              <td><span class="badge" [attr.data-status]="claim.status">{{ claim.status }}</span></td>
+              <td>{{ claim.assignedOfficer ?? '—' }}</td>
+              <td>{{ claim.createdAt | date: 'd MMM y, HH:mm' }}</td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="7" class="muted">No claims yet.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else {
+    <p class="muted">Loading claims…</p>
+  }
+</section>
