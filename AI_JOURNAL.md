@@ -43,3 +43,23 @@
 
 6. Claude Code suggested adding concurrency protection (two officers editing at once). 
 - Decided to defer it for time and documented it in DESIGN.md. Kafka is more important for this brief.
+
+7. Asked Claude Code to add Kafka: publish ClaimStatusChanged after the DB save, a background consumer updates a dashboard table, GET/api/dashboard/summary reads it. 
+- REST = what users wait for
+- Kafka = dashboard updates in the background.
+
+8. I asked for running totals. Claude Code changed it to one row per claim, because Kafka can deliver a message twice and running totals would double-count. 
+- Accepted: duplicates are now harmless (idempotent).
+
+9. Claude Code found that messages can be lost if Kafka is down > 2 min. It suggested an outbox pattern. 
+- I deferred it for time and documented it as a known gap in DESIGN.md.
+
+10. Tested the full flow myself with REST Client: created a claim, checked the dashboard (counted in open claims and exposure), assigned it, moved it to UnderReview, rejected it, and checked the dashboard again (it dropped out of the totals). Also tried skipping from Submitted to Approved and got a 400 error, as my transition rules require.
+
+11. Claude Code said it had added the flow requests to ClaimsApi.http, but my file didn't have them.
+- Replaced the file with a full test sequence (with the help of Claude chat) that captures the claim id automatically.
+
+12. Sample data used market "UAE", but the brief is about Chubb APAC.
+- Changed it to Malaysia.
+
+13. - Kafka container was unstable on my machine. Asked Claude Code to fix the docker-compose settings so reviewers get a stable setup.

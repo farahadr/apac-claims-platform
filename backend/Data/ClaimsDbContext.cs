@@ -1,4 +1,5 @@
 using ClaimsApi.Features.Claims;
+using ClaimsApi.Features.Dashboard;
 using Microsoft.EntityFrameworkCore;
 
 namespace ClaimsApi.Data;
@@ -7,6 +8,7 @@ public class ClaimsDbContext(DbContextOptions<ClaimsDbContext> options) : DbCont
 {
     public DbSet<Claim> Claims => Set<Claim>();
     public DbSet<ClaimEvent> ClaimEvents => Set<ClaimEvent>();
+    public DbSet<DashboardClaim> DashboardClaims => Set<DashboardClaim>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
@@ -45,6 +47,15 @@ public class ClaimsDbContext(DbContextOptions<ClaimsDbContext> options) : DbCont
         {
             ev.Property(e => e.ChangedBy).HasMaxLength(100);
             ev.Property(e => e.Note).HasMaxLength(1000);
+        });
+
+        // Filled by the Kafka consumer. No foreign key to Claims on purpose:
+        // the dashboard only knows what it has read from Kafka.
+        modelBuilder.Entity<DashboardClaim>(d =>
+        {
+            d.HasKey(x => x.ClaimId);
+            d.Property(x => x.ClaimId).ValueGeneratedNever(); // the id comes from the message
+            d.Property(x => x.AssignedOfficer).HasMaxLength(100);
         });
     }
 }

@@ -1,6 +1,8 @@
 using System.Text.Json.Serialization;
 using ClaimsApi.Data;
 using ClaimsApi.Features.Claims;
+using ClaimsApi.Features.Dashboard;
+using ClaimsApi.Infrastructure.Kafka;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,6 +13,11 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddDbContext<ClaimsDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("ClaimsDb")));
+
+// Kafka: one shared publisher, plus the background consumer that feeds the dashboard.
+builder.Services.Configure<KafkaOptions>(builder.Configuration.GetSection("Kafka"));
+builder.Services.AddSingleton<ClaimEventPublisher>();
+builder.Services.AddHostedService<ClaimEventsConsumer>();
 
 // Send and accept enums as text ("Motor") in JSON, not numbers.
 builder.Services.ConfigureHttpJsonOptions(options =>
@@ -27,5 +34,6 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.MapClaimEndpoints();
+app.MapDashboardEndpoints();
 
 app.Run();

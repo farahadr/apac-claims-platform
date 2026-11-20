@@ -36,3 +36,4 @@ to build and easier to run; it could be split later if needed.
 - File uploads, payments, emails
 - Multiple markets' different rules
 - Concurrency control: two officers updating the same claim at the same moment could both pass the status check. Fix would be optimistic concurrency (PostgreSQL row version). Deferred for time.
+- Message loss: if Kafka is down > 2 min, the dashboard can miss a change. Proper fix: transactional outbox (save the event in the same DB transaction as the claim; a background job sends it to Kafka). ClaimEvents could serve as the outbox. Deferred for time.

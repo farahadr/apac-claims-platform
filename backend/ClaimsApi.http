@@ -1,34 +1,61 @@
-@ClaimsApi_HostAddress = http://localhost:5086
+@host = http://localhost:5086
 
 ### Create a claim
-POST {{ClaimsApi_HostAddress}}/api/claims
+# @name createClaim
+POST {{host}}/api/claims
 Content-Type: application/json
 
 {
   "type": "Motor",
-  "market": "UAE",
+  "market": "Malaysia",
   "description": "Rear-ended at a traffic light, bumper and boot damaged.",
   "estimatedAmount": 4250.50,
   "incidentDate": "2026-11-15",
   "claimant": "Jane Doe"
 }
 
+@claimId = {{createClaim.response.body.$.id}}
+
+### Dashboard summary
+GET {{host}}/api/dashboard/summary
+
+### 1. Assign to an officer
+POST {{host}}/api/claims/{{claimId}}/assign
+Content-Type: application/json
+
+{ "officer": "Aisha" }
+
+### 2. Move to UnderReview
+POST {{host}}/api/claims/{{claimId}}/status
+Content-Type: application/json
+
+{ "status": "UnderReview", "changedBy": "Aisha" }
+
+### 3. Reject
+POST {{host}}/api/claims/{{claimId}}/status
+Content-Type: application/json
+
+{ "status": "Rejected", "changedBy": "Aisha", "note": "Not covered by policy" }
+
+### Get this claim with its history
+GET {{host}}/api/claims/{{claimId}}
+
 ### List all claims
-GET {{ClaimsApi_HostAddress}}/api/claims
+GET {{host}}/api/claims
 
-### List claims filtered by status and claimant
-GET {{ClaimsApi_HostAddress}}/api/claims?status=Submitted&claimant=Jane Doe
+### Invalid: skip ahead (Submitted -> Approved)
+POST {{host}}/api/claims/{{claimId}}/status
+Content-Type: application/json
 
-### Get one claim (paste an id from the create response)
-GET {{ClaimsApi_HostAddress}}/api/claims/00000000-0000-0000-0000-000000000000
+{ "status": "Approved", "changedBy": "Aisha" }
 
 ### Invalid: future date, missing description, 3 decimals
-POST {{ClaimsApi_HostAddress}}/api/claims
+POST {{host}}/api/claims
 Content-Type: application/json
 
 {
   "type": "Property",
-  "market": "UAE",
+  "market": "Malaysia",
   "estimatedAmount": 10.555,
   "incidentDate": "2099-01-01",
   "claimant": "Jane Doe"

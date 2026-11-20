@@ -117,6 +117,32 @@ namespace ClaimsApi.Data.Migrations
                     b.ToTable("ClaimEvents");
                 });
 
+            modelBuilder.Entity("ClaimsApi.Features.Dashboard.DashboardClaim", b =>
+                {
+                    b.Property<Guid>("ClaimId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AssignedOfficer")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<decimal>("EstimatedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime>("LastChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.HasKey("ClaimId");
+
+                    b.ToTable("DashboardClaims");
+                });
+
             modelBuilder.Entity("ClaimsApi.Features.Claims.ClaimEvent", b =>
                 {
                     b.HasOne("ClaimsApi.Features.Claims.Claim", "Claim")

@@ -14,6 +14,30 @@ services:
     image: apache/kafka:4.1.0
     ports:
       - "9092:9092"
+    environment:
+      # One node that is both the broker and its own controller (KRaft, no ZooKeeper).
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      # Fixed cluster id (22-char base64 UUID) so the data volume is reused across restarts.
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+      # Only one broker, so internal topics can't have more than one copy.
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      # Keep data in a volume instead of /tmp inside the container.
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      # Default heap is 1 GB; 256 MB is plenty for local dev and leaves room for everything else.
+      KAFKA_HEAP_OPTS: -Xms256m -Xmx256m
+    volumes:
+      - kafkadata:/var/lib/kafka/data
+    restart: unless-stopped
 
 volumes:
   pgdata:
+  kafkadata:

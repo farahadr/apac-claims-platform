@@ -18,7 +18,7 @@ public static class ClaimEndpoints
     }
 
     // POST /api/claims/{id}/assign  — Submitted → Assigned, and sets the officer.
-    private static async Task<IResult> AssignClaim(Guid id, AssignClaimRequest request, ClaimsDbContext db)
+    private static async Task<IResult> AssignClaim(Guid id, AssignClaimRequest request, ClaimsDbContext db, ClaimEventPublisher publisher)
     {
         var errors = new Dictionary<string, string[]>();
         CheckText(errors, request.Officer, "officer", 100);
@@ -35,14 +35,15 @@ public static class ClaimEndpoints
         var officer = request.Officer!.Trim();
         claim.AssignedOfficer = officer;
         // No login yet, so we record the officer as the person who made the change.
-        RecordStatusChange(db, claim, ClaimStatus.Assigned, officer, note: null);
+        var ev = RecordStatusChange(db, claim, ClaimStatus.Assigned, officer, note: null);
 
         await db.SaveChangesAsync();
+        publisher.Publish(ClaimStatusChanged.From(claim, ev));
         return Results.Ok(ToDetails(claim));
     }
 
     // POST /api/claims/{id}/status  — every other move in the status flow.
-    private static async Task<IResult> ChangeStatus(Guid id, ChangeStatusRequest request, ClaimsDbContext db)
+    private static async Task<IResult> ChangeStatus(Guid id, ChangeStatusRequest request, ClaimsDbContext db, ClaimEventPublisher publisher)
     {
         var errors = new Dictionary<string, string[]>();
         if (request.Status is null || !Enum.IsDefined(request.Status.Value))
@@ -64,9 +65,10 @@ public static class ClaimEndpoints
             return TransitionError(claim.Status, to);
 
         var note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim();
-        RecordStatusChange(db, claim, to, request.ChangedBy!.Trim(), note);
+        var ev = RecordStatusChange(db, claim, to, request.ChangedBy!.Trim(), note);
 
         await db.SaveChangesAsync();
+        publisher.Publish(ClaimStatusChanged.From(claim, ev));
         return Results.Ok(ToDetails(claim));
     }
 
@@ -74,7 +76,7 @@ public static class ClaimEndpoints
         db.Claims.Include(c => c.Events).FirstOrDefaultAsync(c => c.Id == id);
 
     // Changes the status and writes the matching history row.
-    private static void RecordStatusChange(ClaimsDbContext db, Claim claim, ClaimStatus to, string changedBy, string? note)
+    private static ClaimEvent RecordStatusChange(ClaimsDbContext db, Claim claim, ClaimStatus to, string changedBy, string? note)
     {
         var now = DateTime.UtcNow;
         var ev = new ClaimEvent
@@ -93,6 +95,7 @@ public static class ClaimEndpoints
 
         claim.Status = to;
         claim.UpdatedAt = now;
+        return ev;
     }
 
     private static IResult TransitionError(ClaimStatus from, ClaimStatus to) =>
@@ -102,7 +105,7 @@ public static class ClaimEndpoints
             detail: ClaimTransitions.Explain(from, to));
 
     // POST /api/claims
-    private static async Task<IResult> CreateClaim(CreateClaimRequest request, ClaimsDbContext db)
+    private static async Task<IResult> CreateClaim(CreateClaimRequest request, ClaimsDbContext db, ClaimEventPublisher publisher)
     {
         var errors = Validate(request);
         if (errors.Count > 0)
@@ -124,17 +127,19 @@ public static class ClaimEndpoints
         };
 
         // Every claim starts its history with a "Submitted" event.
-        claim.Events.Add(new ClaimEvent
+        var submitted = new ClaimEvent
         {
             Id = Guid.NewGuid(),
             FromStatus = null,
             ToStatus = ClaimStatus.Submitted,
             ChangedBy = claim.Claimant,
             ChangedAt = now,
-        });
+        };
+        claim.Events.Add(submitted);
 
         db.Claims.Add(claim);
         await db.SaveChangesAsync();
+        publisher.Publish(ClaimStatusChanged.From(claim, submitted)); // only after the save worked
 
         // 201 Created, with a Location header pointing at GET /api/claims/{id}.
         return Results.CreatedAtRoute("GetClaim", new { id = claim.Id }, ToDetails(claim));
