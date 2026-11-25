@@ -1,6 +1,6 @@
-# chubb-claims
+# apac-claims-platform
 
-A small claims platform built for the Chubb take-home assessment. Claimants submit claims; claims officers assign, review and decide them through a fixed status flow (Submitted → Assigned → UnderReview → Approved/Rejected → Settled). Every status change is kept as an audit trail. Each change is also published to Kafka, and a background consumer keeps a dashboard of open claims, total exposure and workload per officer. The backend is a single .NET 10 Web API backed by PostgreSQL.
+A small claims platform built for the take-home assessment. Claimants submit claims; claims officers assign, review and decide them through a fixed status flow (Submitted → Assigned → UnderReview → Approved/Rejected → Settled). Every status change is kept as an audit trail. Each change is also published to Kafka, and a background consumer keeps a dashboard of open claims, total exposure and workload per officer. The backend is a single .NET 10 Web API backed by PostgreSQL.
 
 ## Prerequisites
 
